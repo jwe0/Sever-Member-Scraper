@@ -1,4 +1,5 @@
 import tls_client, json, random, base64, time, os
+from datetime import datetime
 
 class General:
     def Clear_Screen():
@@ -151,6 +152,54 @@ class Scrape:
 
 
             
+class Spam:
+    def __init__(self, channel, guild, loops, maxmem) -> None:
+        self.channel = channel
+        self.guild = guild
+        self.loops = loops
+        self.maxmem = maxmem
+        self.token = json.load(open("Assets/config.json")).get('Token')
+        self.spoof = Spoofers(self.token)
+        self.session = tls_client.Session()
+        self.members = []
+
+    def Get_Members(self):
+        if os.path.exists("Scrapes/{}.json".format(self.guild)):
+            with open("Scrapes/{}.json".format(self.guild)) as m:
+                mems = json.load(m)
+
+                for mem in mems:
+                    self.members.append(mem)
+
+    def Send_Message(self, message):
+        url = "https://discord.com/api/v9/channels/{}/messages".format(self.channel)
+        headers = self.spoof.Headers()
+
+        data = {'content' : message}
+
+        response = self.session.post(url, headers=headers, json=data)
+
+        if response.status_code == 200:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}]\t{str(response.status_code)}\tSuccesfull")
+        else:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}]\t{str(response.status_code)}\tFailed")
+
+
+    def Start(self):
+        for x in range(self.loops):
+            message = "" 
+            used = [] 
+
+            for i in range(len(self.members)):
+                if i not in used:
+                    message += f"<@{self.members[i]}> "
+                    used.append(i)
+
+                    if len(used) == self.maxmem or i == len(self.members) - 1:
+                        self.Send_Message(message)
+                        message = ""
+                        used = []
+
 
 
 
@@ -172,10 +221,22 @@ class Main:
         General.Clear_Screen()
         General.Title()
         General.Menu()
-        chan = input("Server ID: ")
-        s = Scrape(chan, self.token)
-        s.Channels()
-        s.Messages()
+        server = input("Server ID: ")
+        print("1. Scrape\t2. Spam")
+        selection = input("> ")
+        match selection:
+            case "1":
+                s = Scrape(server, self.token)
+                s.Channels()
+                s.Messages()
+            case "2":
+                channel = input("Channel ID: ")
+                loops = input("Loops: ")
+                mp = input("Membes per: ")
+                print()
+                s = Spam(channel, server, int(loops), int(mp))
+                s.Get_Members()
+                s.Start()
 
 
     
